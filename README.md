@@ -22,7 +22,7 @@ Progress : [########################################] 100%
 1,2G done/1973_Fairchild_Semiconductor_The_TTL_Applications_Handbook_197308.pdf.done
 75M tumble/1973_Fairchild_Semiconductor_The_TTL_Applications_Handbook_197308--tumble--600dpi.pdf
 
-==COPYRIGHT= Summary ===
+=== Summary ===
 Colored front/back cover: yes
 1062.43 seconds processing time
 PDF: 372 pages
