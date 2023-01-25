@@ -4,10 +4,12 @@ Tools for submitting scanned data books to bitsavers.org
 
 ### make-tifpdf
 
-is a script for converting one pdf with scanned pages (300-600 dpi, color or grey) 
-to a PDF with 
+[make-tifpdf](https://github.com/Wikinaut/bitsavers-tools/blob/main/make-tifpdf)  
 
-* 600 dpi 1-bit TIFF pages ; 
+a script for converting one pdf with scanned pages (300-600 dpi, color or grey)   
+to a PDF with
+
+* 600 dpi 1-bit TIFF pages
 * optionally (default) colored 300 dpi jpg front/cover pages.
 
 
