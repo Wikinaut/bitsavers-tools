@@ -3,7 +3,7 @@ Tools for submitting scanned data books to bitsavers.org
 
 
 
-make-tifpdf
+**make-tifpdf**
 
 is a script for converting one pdf with scanned pages (300-600 dpi, color or grey) 
 to a PDF with 
@@ -13,7 +13,8 @@ to a PDF with
 
 
 
-Example run:
+Usage example:
+
 ```
 `$ ./make-tifpdf 1973_Fairchild_Semiconductor_The_TTL_Applications_Handbook_197308.pdf 
 Processing:
