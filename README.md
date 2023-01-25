@@ -16,7 +16,7 @@ to a PDF with
 Usage example:
 
 ```
-`$ ./make-tifpdf 1973_Fairchild_Semiconductor_The_TTL_Applications_Handbook_197308.pdf 
+$ ./make-tifpdf 1973_Fairchild_Semiconductor_The_TTL_Applications_Handbook_197308.pdf 
 Processing:
 1,2G 1973_Fairchild_Semiconductor_The_TTL_Applications_Handbook_197308.pdf
 372 PDF pages
