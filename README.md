@@ -2,9 +2,7 @@
 Tools for submitting scanned data books to bitsavers.org
 
 
-### make-tifpdf
-
-[make-tifpdf](https://github.com/Wikinaut/bitsavers-tools/blob/main/make-tifpdf)  
+### [make-tifpdf](https://github.com/Wikinaut/bitsavers-tools/blob/main/make-tifpdf)  
 
 a script for converting one pdf with scanned pages (300-600 dpi, color or grey)   
 to a PDF with
