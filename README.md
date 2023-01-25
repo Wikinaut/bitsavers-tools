@@ -1,5 +1,5 @@
 # bitsavers-tools
-Tools for submitting scanned data books to bitsavers.org
+Tools for submitting scanned data books to http://bitsavers.org
 
 
 ### [make-tifpdf](https://github.com/Wikinaut/bitsavers-tools/blob/main/make-tifpdf)  
