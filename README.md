@@ -2,8 +2,7 @@
 Tools for submitting scanned data books to bitsavers.org
 
 
-
-**make-tifpdf**
+### make-tifpdf
 
 is a script for converting one pdf with scanned pages (300-600 dpi, color or grey) 
 to a PDF with 
@@ -12,8 +11,7 @@ to a PDF with
 * optionally (default) colored 300 dpi jpg front/cover pages.
 
 
-
-Usage example:
+### Usage example
 
 ```
 $ ./make-tifpdf 1973_Fairchild_Semiconductor_The_TTL_Applications_Handbook_197308.pdf 
@@ -34,3 +32,8 @@ PDF: 372 pages
 
 ![grafik](https://user-images.githubusercontent.com/1151915/214706285-f79cad1c-f270-4e86-83be-2652aff87fbe.png)
 
+### Requirements
+
+* pdftoppm
+* convert (part of Imagemagick)
+* tumble https://github.com/brouhaha/tumble is a utility by Eric Smith to construct an PDF file from one (or more) 1-bit-tiff image files and/or jpg files.
