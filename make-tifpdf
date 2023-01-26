@@ -132,10 +132,6 @@ for i in $tmpdir/p*.ppm; do
 	let j=$j+1
 	ProgressBar $j $endprogress
 
-#	"-colors 2" sometimes produces all black tif pages for all white pages
-#	do not use it
-#	convert $i -density 600 +dither -colors 2 -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}--600dpi.tif"
-
 #	http://www.fmwconcepts.com/imagemagick/2colorthresh/index.php
 #	PURPOSE:
 #	To automatically thresholds an image to binary (b/w) format using an adaptive spatial subdivision color reduction technique.
@@ -149,7 +145,9 @@ for i in $tmpdir/p*.ppm; do
 #
 #	adapted to output create 1-bit tiff files in the desired resolution 
 
-	convert $i -density 600 +dither -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}--600dpi.tif"
+#	"-colors 2" sometimes produces all black tif pages for all white pages
+	convert $i -density 600 +dither -colors 2 -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}--600dpi.tif"
+#	convert $i -density 600 +dither -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}--600dpi.tif"
 
 done
 
