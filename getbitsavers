@@ -1,0 +1,40 @@
+#!/usr/bin/bash
+
+# init 20230111
+# download bitsavers index files and check for new files
+#
+# store the current list sorted in $outf
+# log the list changes with a timestamp in $logf
+
+NOW=$(date +%Y%m%d-%H%M)
+outf="bitsavers-list.txt"
+logf="bitsavers.log"
+
+server="http:\/\/bitsavers.org\/ "
+cp $outf $outf.old
+
+echo "Fetch and sort the description files from bitsavers.org according to manufacturers' names to $outf"
+
+wget -O - http://bitsavers.org/components/IndexByDate.txt | sed -e "s/^.* .* /${server}components\/ /" - > $outf.tmp
+wget -O - http://bitsavers.org/communications/IndexByDate.txt | sed -e "s/^.* .* /${server}communications\/ /" - >> $outf.tmp
+wget -O - http://bitsavers.org/bits/IndexByDate.txt | sed -e "s/^.* .* /${server}bits\/ /" - >> $outf.tmp
+wget -O - http://bitsavers.org/pdf/IndexByDate.txt | sed -e "s/^.* .* /${server}pdf\/ /" - >> $outf.tmp
+wget -O - http://bitsavers.org/magazines/IndexByDate.txt | sed -e "s/^.* .* /${server}magazines\/ /" - >> $outf.tmp
+wget -O - http://bitsavers.org/test_equipment/IndexByDate.txt | sed -e "s/^.* .* /${server}test_equipment\/ /" - >> $outf.tmp
+
+sort -k 3 $outf.tmp | uniq | sed -e "s/ //g" - > $outf
+rm $outf.tmp
+
+
+SAVEIFS=$IFS
+IFS=$''
+
+DIFF=$(diff $outf.old $outf)
+
+if [ "$DIFF" ] ; then
+	echo "--- $NOW ---" >> $logf
+	echo $DIFF | sed -n "s/^< /+/gp;s/^> /-/gp"
+	echo $DIFF | sed -n "s/^< /+/gp;s/^> /-/gp" >> $logf
+fi
+
+IFS=$SAVEIFS
