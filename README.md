@@ -8,7 +8,8 @@ a script for converting one pdf with scanned pages (300-600 dpi, color or grey)
 to a PDF with
 
 * 600 dpi 1-bit TIFF pages
-* optionally (default) colored 300 dpi jpg front/cover pages.
+* colored 300 dpi jpg front/cover pages  
+use `--no-color` option to force all pages to be converted to black-white 1-bit tiff
 
 
 ### Usage example
