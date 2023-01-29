@@ -4,7 +4,7 @@
 
 if [ $# -lt 1 ] ; then
 	echo "make-tifpdf: create a 600 dpi pdf with 1-bit-tiff images for uploading scans to → bitsavers.org"
-	echo "Usage: make-tifpdf <infile.pdf> [outfile.pdf]"
+	echo "Usage: make-tifpdf [--no-color] <infile.pdf> [outfile.pdf]"
 	echo
 	exit
 fi
@@ -23,8 +23,6 @@ start=$(date +%s.%N)
 
 # Path to tumble program
 tumble="/home/benutzer/src/tumble/tumble"
-
-infile=$1
 
 red="\e[1;31m"
 yellow="\e[1;33m"
@@ -51,7 +49,7 @@ function ProgressBar {
 	# Process data
 	let _progress=(${1}*100/${2}*100)/100
 	let _done=(${_progress}*4)/10
-	let _left=40-$_done
+	let _left=40-${_done}
 
 	# Build progressbar string lengths
 	_done=$(printf "%${_done}s")
@@ -63,6 +61,19 @@ function ProgressBar {
 	printf "\rProgress : [${_done// /#}${_left// /-}] ${_progress}%%"
 
 }
+
+
+if [ "$1" = "--no-color" ] ; then
+	coloredcover=0
+	shift;
+fi
+
+infile=$1
+if [ ! -f $infile ]; then
+	echo -e "${red}No such file:"
+	echo -e "$infile ${nocol}"
+	exit
+fi
 
 if [ $# -eq 1 ] ; then
 	outfile=$(echo "$tumbledir/${infile%.*}--tumble--600dpi.pdf" | sed -e "s/--.00dpi--tumble--600dpi/--tumble--600dpi/")
@@ -85,10 +96,11 @@ if [ -f $outfile ] ; then
 	exit
 fi
 
+
 tmpdir=$(mktemp -d -t make-tifpdf-XXXXXXXXXX)
 
-
 numberofpages=$(pdfinfo "$infile" | grep "Pages" | awk '{print $2}')
+
 echo -e "${cyan}Processing:"
 echo $(du -h "$infile")
 echo -e "$numberofpages PDF pages${nocol}"
@@ -98,21 +110,41 @@ lastbutonepage=$(echo "$numberofpages - 1" | bc)
 # explode any page in the infile pdf to single 600 dpi ppm file
 # each file: filesize 62 MB
 
-progress=0
+let endprogress=$numberofpages*2
+let halfprogress=$numberofpages
 
 if [ $coloredcover -eq 1 ] ; then
 
-	let endprogress=$numberofpages*2
-	let halfprogress=$numberofpages
+	if [ $numberofpages -gt 2 ]; then
 
-	# process colored front and back cover
-	ProgressBar 1 $endprogress
-	pdftoppm -f 1 -singlefile -jpeg -r $coverresolution "$infile" $tmpdir/frontcover
+		# process colored front and back cover
+		ProgressBar 1 $endprogress
+		pdftoppm -f 1 -singlefile -jpeg -r $coverresolution "$infile" $tmpdir/frontcover
 
-	pdftoppm -f 2 -l $lastbutonepage -r 600 "$infile" $tmpdir/p
-	ProgressBar $halfprogress $endprogress
+		pdftoppm -f 2 -l $lastbutonepage -r 600 "$infile" $tmpdir/p
+		ProgressBar $halfprogress $endprogress
 
-	pdftoppm -f $numberofpages -singlefile -jpeg -r $coverresolution "$infile" $tmpdir/backcover
+		pdftoppm -f $numberofpages -singlefile -jpeg -r $coverresolution "$infile" $tmpdir/backcover
+
+	fi
+
+
+	if [ $numberofpages -eq 2 ]; then
+
+		# process two colored pages, that's it
+
+		pdftoppm -jpeg -r $coverresolution "$infile" $tmpdir/p
+		ProgressBar $halfprogress $endprogress
+
+	fi
+
+	if [ $numberofpages -eq 1 ]; then
+
+		# process one colored page, that's it
+
+		pdftoppm -jpeg -r $coverresolution "$infile" $tmpdir/p
+
+	fi
 
 else
 
@@ -124,40 +156,52 @@ fi
 
 # number of files = number of pages
 
-ppmpages=$(ls $tmpdir | wc -l)
 j=$halfprogress
+ppmpages=$(find $tmpdir -name *.ppm | wc -l)
 
-for i in $tmpdir/p*.ppm; do
+if [ $ppmpages -gt 0 ]; then
 
-	let j=$j+1
-	ProgressBar $j $endprogress
+	for i in $tmpdir/p*.ppm; do
 
-#	http://www.fmwconcepts.com/imagemagick/2colorthresh/index.php
-#	PURPOSE:
-#	To automatically thresholds an image to binary (b/w) format using an adaptive spatial subdivision color reduction technique.
-#
-#	DESCRIPTION:
-#	2COLORTHRESH automatically thresholds an image to binary (b/w) format using an adaptive spatial subdivision color reduction technique.
-#	This is the -colors IM operator as implemented with slight modification from Anthony's Examples
-#	at http://www.imagemagick.org/Usage/quantize/#two_color
-#
-#	For algorithm details, see http://www.imagemagick.org/script/quantize.php 
-#
-#	adapted to output create 1-bit tiff files in the desired resolution 
+		let j=$j+1
+		ProgressBar $j $endprogress
 
-#	"-colors 2" sometimes produces all black tif pages for all white pages
-	convert $i -density 600 +dither -colors 2 -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}--600dpi.tif"
-#	convert $i -density 600 +dither -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}--600dpi.tif"
+	#	http://www.fmwconcepts.com/imagemagick/2colorthresh/index.php
+	#	PURPOSE:
+	#	To automatically thresholds an image to binary (b/w) format using an adaptive spatial subdivision color reduction technique.
+	#
+	#	DESCRIPTION:
+	#	2COLORTHRESH automatically thresholds an image to binary (b/w) format using an adaptive spatial subdivision color reduction technique.
+	#	This is the -colors IM operator as implemented with slight modification from Anthony's Examples
+	#	at http://www.imagemagick.org/Usage/quantize/#two_color
+	#
+	#	For algorithm details, see http://www.imagemagick.org/script/quantize.php
+	#
+	#	adapted to output create 1-bit tiff files in the desired resolution
 
-done
+	#	"-colors 2" sometimes produces all black tif pages for all white pages
+		convert $i -density 600 +dither -colors 2 -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}--600dpi.tif"
+	#	convert $i -density 600 +dither -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}--600dpi.tif"
+
+	done
+fi
 
 # Each uncompressed tiff file is now a 1-bit BlackWhite image with 600 dpi
 # each file: filesize 2,7 MB
 
 if [ $coloredcover -eq 1 ] ; then
 
-	# process colored front and back cover
-	$tumble $tmpdir/frontcover.jpg $(ls $tmpdir/*.tif) $tmpdir/backcover.jpg -o "$outfile" &>/dev/null
+	if [ $numberofpages -gt 2 ]; then
+
+		# process colored front and back cover
+		$tumble $tmpdir/frontcover.jpg $(ls $tmpdir/*.tif) $tmpdir/backcover.jpg -o "$outfile" &>/dev/null
+
+	else
+
+		# process one or two colored pages
+		$tumble $(ls $tmpdir/*.jpg) -o "$outfile" &>/dev/null
+
+	fi
 
 else
 
@@ -165,8 +209,7 @@ else
 
 fi
 
-let j=$endprogress
-ProgressBar $j $endprogress
+ProgressBar $endprogress $endprogress
 
 end=$(date +%s.%N)
 runtime=$(echo "scale=2;($end - $start)/1" | bc)
