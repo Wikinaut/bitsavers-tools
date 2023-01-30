@@ -9,8 +9,9 @@ to a PDF with
 
 * 600 dpi 1-bit TIFF pages
 * colored 300 dpi jpg front/cover pages  
-use `--no-color` option to force all pages to be converted to black-white 1-bit tiff
-
+use `--no-color` option to force all pages to be converted to black-white 1-bit tiff  
+use `--color` option to force cover and back page to be converted into jpg  
+use `--auto` to auto-detect colored cover and back page and set mode accordingly (default)
 
 ### Usage example
 
