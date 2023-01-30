@@ -4,14 +4,15 @@
 
 if [ $# -lt 1 ] ; then
 	echo "make-tifpdf: create a 600 dpi pdf with 1-bit-tiff images for uploading scans to → bitsavers.org"
-	echo "Usage: make-tifpdf [--no-color] <infile.pdf> [outfile.pdf]"
+	echo "Usage: make-tifpdf [--auto (default)|--no-color|--color] <infile.pdf> [outfile.pdf]"
 	echo
 	exit
 fi
 
 # set to 0 to convert everything to 600dpi 1-bit tiff
-# set to 1 to convert the front and back cover to colored jpg with coverresolution
-coloredcover=1
+# set to 1 to force the convertion of the front and back cover to colored jpg with coverresolution
+# set to 2 to auto detect based on colored front or backpage (default)
+colormode=2
 
 # resolution in dpi for front and back cover jpg
 coverresolution=300
@@ -62,13 +63,25 @@ function ProgressBar {
 
 }
 
+colormode=2 # default: auto
 
 if [ "$1" = "--no-color" ] ; then
-	coloredcover=0
+	colormode=0
+	shift;
+fi
+
+if [ "$1" = "--color" ] ; then
+	colormode=1
+	shift;
+fi
+
+if [ "$1" = "--auto" ] ; then
+	colormode=2
 	shift;
 fi
 
 infile=$1
+
 if [ ! -f $infile ]; then
 	echo -e "${red}No such file:"
 	echo -e "$infile ${nocol}"
@@ -113,7 +126,25 @@ lastbutonepage=$(echo "$numberofpages - 1" | bc)
 let endprogress=$numberofpages*2
 let halfprogress=$numberofpages
 
-if [ $coloredcover -eq 1 ] ; then
+# use awk to extract image colorspace from pdfimages output
+firstpageimagetype=$(pdfimages -list x.pdf | awk 'FNR==3 {print $6}')
+lastpageimagetype=$(pdfimages -list x.pdf | awk 'END {print $6}')
+
+if [ $colormode -eq 2 ] ; then
+
+	if [ "$firstpageimagetype" = "rgb" ]; then
+		colormode=1
+	fi
+
+	if [ "$lastpageimagetype" = "rgb" ]; then
+		colormode=1
+	fi
+
+fi
+
+echo "Colorspace page 1: $firstpageimagetype, last page: $lastpageimagetype → colormode: $colormode"
+
+if [ $colormode -eq 1 ] ; then
 
 	if [ $numberofpages -gt 2 ]; then
 
@@ -189,7 +220,7 @@ fi
 # Each uncompressed tiff file is now a 1-bit BlackWhite image with 600 dpi
 # each file: filesize 2,7 MB
 
-if [ $coloredcover -eq 1 ] ; then
+if [ $colormode -eq 1 ] ; then
 
 	if [ $numberofpages -gt 2 ]; then
 
@@ -226,7 +257,7 @@ echo $(du -h "$outfile")
 echo
 echo -e "$yellow=== Summary ===$nocol"
 
-if [ $coloredcover -eq 1 ] ; then
+if [ $colormode -eq 1 ] ; then
 	echo "Colored front/back cover: yes"
 else
 	echo "Colored front/back cover: no"
