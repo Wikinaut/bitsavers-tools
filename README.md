@@ -35,6 +35,7 @@ PDF: 372 pages
 
 ### Requirements
 
+* pdfimages
 * pdftoppm
 * convert (part of Imagemagick)
 * tumble https://github.com/brouhaha/tumble is a utility by Eric Smith to construct an PDF file from one (or more) 1-bit-tiff image files and/or jpg files.
