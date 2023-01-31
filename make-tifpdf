@@ -113,13 +113,12 @@ declare -a colorspace
 SAVEIFS=$IFS
 
 IFS=$'\n'
-colorspace=( $(pdfimages -list x.pdf | awk 'FNR>2 {printf("%06d.%s\n", $1, $6) }') )
+colorspace=( $(pdfimages -list "$infile" | awk 'FNR>2 {printf("%06d.%s\n", $1, $6) }') )
 IFS=$SAVEIFS
 
 
 for (( page = 1; page <= ${numberofpages}; page++ )); do
 
-	# process colored front and back cover
 	ProgressBar $page $endprogress
 
 	pagecolor=${colorspace[${page}-1]}
@@ -141,8 +140,6 @@ for (( page = 1; page <= ${numberofpages}; page++ )); do
 	esac
 
 done
-
-# number of files = number of pages
 
 j=$halfprogress
 ppmpages=$(find $tmpdir -name *.ppm | wc -l)
