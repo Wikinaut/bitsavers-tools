@@ -2,20 +2,19 @@
 
 # init 20230124
 
+# resolution in dpi for black/white pages
+blackwhiteresolution=600
+
+# resolution in dpi for colored pages
+colorresolution=300
+
+
 if [ $# -lt 1 ] ; then
-	echo "make-tifpdf: create a 600 dpi pdf with 1-bit-tiff images for uploading scans to → bitsavers.org"
-	echo "Usage: make-tifpdf [--auto (default)|--no-color|--color] <infile.pdf> [outfile.pdf]"
+	echo "make-tifpdf: create a $blackwhiteresolution dpi pdf with 1-bit-tiff black/white or $colorresolution dpi color images for uploading scans to → bitsavers.org"
+	echo "Usage: make-tifpdf <infile.pdf> [outfile.pdf]"
 	echo
 	exit
 fi
-
-# set to 0 to convert everything to 600dpi 1-bit tiff
-# set to 1 to force the convertion of the front and back cover to colored jpg with coverresolution
-# set to 2 to auto detect based on colored front or backpage (default)
-colormode=2
-
-# resolution in dpi for front and back cover jpg
-coverresolution=300
 
 # tumble source: https://github.com/brouhaha/tumble
 # tumble is a utility by Eric Smith to construct PDF files from one or more 1-bit-tiff image files
@@ -63,23 +62,6 @@ function ProgressBar {
 
 }
 
-colormode=2 # default: auto
-
-if [ "$1" = "--no-color" ] ; then
-	colormode=0
-	shift;
-fi
-
-if [ "$1" = "--color" ] ; then
-	colormode=1
-	shift;
-fi
-
-if [ "$1" = "--auto" ] ; then
-	colormode=2
-	shift;
-fi
-
 infile=$1
 
 if [ ! -f $infile ]; then
@@ -89,7 +71,7 @@ if [ ! -f $infile ]; then
 fi
 
 if [ $# -eq 1 ] ; then
-	outfile=$(echo "$tumbledir/${infile%.*}--tumble--600dpi.pdf" | sed -e "s/--.00dpi--tumble--600dpi/--tumble--600dpi/")
+	outfile="$tumbledir/${infile%.*}--tumble--${blackwhiteresolution}dpi.pdf"
 else
 	outfile=$2
 fi
@@ -126,64 +108,39 @@ lastbutonepage=$(echo "$numberofpages - 1" | bc)
 let endprogress=$numberofpages*2
 let halfprogress=$numberofpages
 
-# use awk to extract image colorspace from pdfimages output
-firstpageimagetype=$(pdfimages -list x.pdf | awk 'FNR==3 {print $6}')
-lastpageimagetype=$(pdfimages -list x.pdf | awk 'END {print $6}')
+declare -a colorspace
 
-if [ $colormode -eq 2 ] ; then
+SAVEIFS=$IFS
 
-	if [ "$firstpageimagetype" = "rgb" ]; then
-		colormode=1
-	fi
-
-	if [ "$lastpageimagetype" = "rgb" ]; then
-		colormode=1
-	fi
-
-fi
-
-echo "Colorspace page 1: $firstpageimagetype, last page: $lastpageimagetype → colormode: $colormode"
-
-if [ $colormode -eq 1 ] ; then
-
-	if [ $numberofpages -gt 2 ]; then
-
-		# process colored front and back cover
-		ProgressBar 1 $endprogress
-		pdftoppm -f 1 -singlefile -jpeg -r $coverresolution "$infile" $tmpdir/frontcover
-
-		pdftoppm -f 2 -l $lastbutonepage -r 600 "$infile" $tmpdir/p
-		ProgressBar $halfprogress $endprogress
-
-		pdftoppm -f $numberofpages -singlefile -jpeg -r $coverresolution "$infile" $tmpdir/backcover
-
-	fi
+IFS=$'\n'
+colorspace=( $(pdfimages -list x.pdf | awk 'FNR>2 {printf("%06d.%s\n", $1, $6) }') )
+IFS=$SAVEIFS
 
 
-	if [ $numberofpages -eq 2 ]; then
+for (( page = 1; page <= ${numberofpages}; page++ )); do
 
-		# process two colored pages, that's it
+	# process colored front and back cover
+	ProgressBar $page $endprogress
 
-		pdftoppm -jpeg -r $coverresolution "$infile" $tmpdir/p
-		ProgressBar $halfprogress $endprogress
+	pagecolor=${colorspace[${page}-1]}
 
-	fi
+	case ${pagecolor#*.} in
 
-	if [ $numberofpages -eq 1 ]; then
+	rgb)
+		pdftoppm -f $page -singlefile -jpeg -r $colorresolution "$infile" $tmpdir/p-${pagecolor}
+	;;
 
-		# process one colored page, that's it
+	gray)
+		pdftoppm -f $page -singlefile -r $blackwhiteresolution "$infile" $tmpdir/p-${pagecolor}
+	;;
 
-		pdftoppm -jpeg -r $coverresolution "$infile" $tmpdir/p
+	*)
+		echo -e "${red}Unknown colorspace type ${pagecolor#*.} for page $page.${nocol}"
+	;;
 
-	fi
+	esac
 
-else
-
-	ProgressBar $halfprogress $endprogress
-	pdftoppm -r 600 "$infile" $tmpdir/p
-
-fi
-
+done
 
 # number of files = number of pages
 
@@ -198,47 +155,22 @@ if [ $ppmpages -gt 0 ]; then
 		ProgressBar $j $endprogress
 
 	#	http://www.fmwconcepts.com/imagemagick/2colorthresh/index.php
-	#	PURPOSE:
-	#	To automatically thresholds an image to binary (b/w) format using an adaptive spatial subdivision color reduction technique.
 	#
-	#	DESCRIPTION:
 	#	2COLORTHRESH automatically thresholds an image to binary (b/w) format using an adaptive spatial subdivision color reduction technique.
 	#	This is the -colors IM operator as implemented with slight modification from Anthony's Examples
 	#	at http://www.imagemagick.org/Usage/quantize/#two_color
 	#
 	#	For algorithm details, see http://www.imagemagick.org/script/quantize.php
-	#
 	#	adapted to output create 1-bit tiff files in the desired resolution
 
 	#	"-colors 2" sometimes produces all black tif pages for all white pages
-		convert $i -density 600 +dither -colors 2 -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}--600dpi.tif"
-	#	convert $i -density 600 +dither -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}--600dpi.tif"
+		convert $i -density $blackwhiteresolution +dither -colors 2 -colorspace gray -contrast-stretch 0 -depth 1 "${i%.*}.tif"
+		rm $i
 
 	done
 fi
 
-# Each uncompressed tiff file is now a 1-bit BlackWhite image with 600 dpi
-# each file: filesize 2,7 MB
-
-if [ $colormode -eq 1 ] ; then
-
-	if [ $numberofpages -gt 2 ]; then
-
-		# process colored front and back cover
-		$tumble $tmpdir/frontcover.jpg $(ls $tmpdir/*.tif) $tmpdir/backcover.jpg -o "$outfile" &>/dev/null
-
-	else
-
-		# process one or two colored pages
-		$tumble $(ls $tmpdir/*.jpg) -o "$outfile" &>/dev/null
-
-	fi
-
-else
-
-	$tumble $(ls $tmpdir/*.tif) -o "$outfile" &>/dev/null
-
-fi
+$tumble $(ls $tmpdir/*) -o "$outfile" &>/dev/null
 
 ProgressBar $endprogress $endprogress
 
@@ -256,12 +188,6 @@ echo $(du -h "$donedir/$infile.done")
 echo $(du -h "$outfile")
 echo
 echo -e "$yellow=== Summary ===$nocol"
-
-if [ $colormode -eq 1 ] ; then
-	echo "Colored front/back cover: yes"
-else
-	echo "Colored front/back cover: no"
-fi
 
 echo "$runtime seconds processing time"
 echo "PDF: $numberofpages pages"
