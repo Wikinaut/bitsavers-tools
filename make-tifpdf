@@ -108,36 +108,27 @@ lastbutonepage=$(echo "$numberofpages - 1" | bc)
 let endprogress=$numberofpages*2
 let halfprogress=$numberofpages
 
-declare -a colorspace
+declare -a rgb
 
 SAVEIFS=$IFS
 
 IFS=$'\n'
-colorspace=( $(pdfimages -list "$infile" | awk 'FNR>2 {printf("%06d.%s\n", $1, $6) }') )
+# array of pages with rgb
+rgb=( $(pdfimages -list "$infile" | awk 'FNR>2 {printf("%06d%s\n", $1, $6) }' | sed -n "s/rgb//p" | uniq ) )
 IFS=$SAVEIFS
 
 
 for (( page = 1; page <= ${numberofpages}; page++ )); do
 
-	ProgressBar $page $endprogress
+	# ProgressBar $page $endprogress
 
-	pagecolor=${colorspace[${page}-1]}
+	printf -v pgnr "%06d" $page
 
-	case ${pagecolor#*.} in
-
-	rgb)
-		pdftoppm -f $page -singlefile -jpeg -r $colorresolution "$infile" $tmpdir/p-${pagecolor}
-	;;
-
-	gray)
-		pdftoppm -f $page -singlefile -r $blackwhiteresolution "$infile" $tmpdir/p-${pagecolor}
-	;;
-
-	*)
-		echo -e "${red}Unknown colorspace type ${pagecolor#*.} for page $page.${nocol}"
-	;;
-
-	esac
+	if [[ " ${rgb[*]} " =~ " ${pgnr} " ]]; then
+		pdftoppm -f $page -singlefile -jpeg -r $colorresolution "$infile" $tmpdir/p-${pgnr}
+	else
+		pdftoppm -f $page -singlefile -r $blackwhiteresolution "$infile" $tmpdir/p-${pgnr}
+	fi
 
 done
 
