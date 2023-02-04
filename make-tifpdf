@@ -120,7 +120,7 @@ IFS=$SAVEIFS
 
 for (( page = 1; page <= ${numberofpages}; page++ )); do
 
-	# ProgressBar $page $endprogress
+	ProgressBar $page $endprogress
 
 	printf -v pgnr "%06d" $page
 
